@@ -1,0 +1,161 @@
+# chatbot with memory
+
+# from fastapi import FastAPI, HTTPException
+# from fastapi.middleware.cors import CORSMiddleware
+# from pydantic import BaseModel
+# import uvicorn
+# from contextlib import asynccontextmanager
+
+# from chatbot.llm import create_llm
+# from chatbot.config import Config   # ✅ Import Config for system prompt
+# import os
+# from dotenv import load_dotenv
+
+# # Load environment only in local dev (Render sets env vars directly)
+# if os.getenv("RENDER") is None:
+#     load_dotenv()
+
+# # Request + Response models
+# class QueryRequest(BaseModel):
+#     message: str
+
+# class QueryResponse(BaseModel):
+#     answer: str
+#     success: bool
+
+# # Initialize FastAPI app
+# app = FastAPI(title="Medical Chatbot API")
+
+# # Enable CORS
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+#     allow_credentials=True
+# )
+
+# # Global vars
+# llm = None
+# conversation_history = []  # simple in-memory chat history
+
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     global llm
+#     llm = create_llm()
+#     yield
+#     # Cleanup if needed
+
+# app.router.lifespan_context = lifespan
+
+# # Root endpoint
+# @app.get("/")
+# def home():
+#     return {"message": "Welcome to the Medical Chatbot API 🚑"}
+
+# # Chat endpoint
+# @app.post("/chat", response_model=QueryResponse)
+# async def chat_endpoint(request: QueryRequest):
+#     if llm is None:
+#         raise HTTPException(status_code=500, detail="LLM not initialized")
+
+#     try:
+#         # ✅ Include system prompt from config
+#         conversation = f"System: {Config.SYSTEM_PROMPT}\n\n"
+#         for user, bot in conversation_history:
+#             conversation += f"User: {user}\nBot: {bot}\n"
+#         conversation += f"User: {request.message}\nBot:"
+
+#         # Call LLM
+#         response = llm.invoke(conversation)
+#         answer = response.content if hasattr(response, "content") else str(response)
+
+#         # Save interaction
+#         conversation_history.append((request.message, answer))
+
+#         return QueryResponse(answer=answer, success=True)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+
+
+
+#chatbot without memory
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
+from contextlib import asynccontextmanager
+
+from chatbot.llm import create_llm
+from chatbot.config import Config   # ✅ Import Config for system prompt
+import os
+from dotenv import load_dotenv
+
+# Load environment only in local dev (Render sets env vars directly)
+if os.getenv("RENDER") is None:
+    load_dotenv()
+
+# Request + Response models
+class QueryRequest(BaseModel):
+    message: str
+
+class QueryResponse(BaseModel):
+    answer: str
+    success: bool
+
+# Initialize FastAPI app
+app = FastAPI(title="Medical Chatbot API")
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True
+)
+
+# Global vars
+llm = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global llm
+    llm = create_llm()
+    yield
+    # Cleanup if needed
+
+app.router.lifespan_context = lifespan
+
+# Root endpoint
+@app.get("/")
+def home():
+    return {"message": "Welcome to the Medical Chatbot API 🚑"}
+
+# Chat endpoint
+@app.post("/chat", response_model=QueryResponse)
+async def chat_endpoint(request: QueryRequest):
+    if llm is None:
+        raise HTTPException(status_code=500, detail="LLM not initialized")
+
+    try:
+        # ✅ Only system prompt + current user message (no memory)
+        conversation = f"System: {Config.SYSTEM_PROMPT}\n\n"
+        conversation += f"User: {request.message}\nBot:"
+
+        # Call LLM
+        response = llm.invoke(conversation)
+        answer = response.content if hasattr(response, "content") else str(response)
+
+        return QueryResponse(answer=answer, success=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

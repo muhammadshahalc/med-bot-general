@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.pkl
+
+# Environment
+.env
+.env.*
+*.env
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Jupyter / Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build / Packaging
+*.egg-info/
+dist/
+build/
+bot_venv/
